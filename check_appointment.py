@@ -1,8 +1,10 @@
 # !pip install webdriver-manager
+# ! pip install win10toast
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from captcha_solver import CaptchaSolver, CaptchaSolverError
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.by import By
+from win10toast import ToastNotifier # For show windows notification
 from dotenv import load_dotenv
 from selenium import webdriver
 import datetime
@@ -33,11 +35,12 @@ DAY = (
 # Load .env
 load_dotenv('.env')
 
+driver = webdriver.Edge(service=Service(EdgeChromiumDriverManager().install()))
+driver.maximize_window()
+driver.get('https://www.ckgsir.com/my-account')
 invalid_login = True
+
 while invalid_login:
-    driver = webdriver.Edge(service=Service(EdgeChromiumDriverManager().install()))
-    driver.maximize_window()
-    driver.get('https://www.ckgsir.com/my-account')
 
     # Fill My Account form
     webReference = driver.find_element(By.NAME, 'webReference')
@@ -62,9 +65,14 @@ while invalid_login:
     passportNo = driver.find_element(By.NAME, "passportNo")
     passportNo.send_keys(os.getenv("PASSPORT_NO"))
 
-    cookieOk = driver.find_element(By.ID, 'cookieOk')
-    cookieOk.click()
-
+    cookieOk = driver.find_elements(By.ID, 'cookieOk')
+    cookieOk[0].click()
+    loading_captcha = driver.find_elements(By.CLASS_NAME)
+    while loading_captcha:
+        if loading_captcha:
+            continue
+        else:
+            break
     captcha_element = driver.find_element(By.ID, "LoginCaptcha_CaptchaImage")
     captcha_element.screenshot(f".{os.sep}static{os.sep}img.png")
     try:
@@ -86,6 +94,7 @@ while invalid_login:
     # Check login process valid
     invalid_login_element = driver.find_elements(By.LINK_TEXT, "Invalid Captcha.")
     if invalid_login_element:
+        driver.navigate().refresh();
         continue
     else:
         break
@@ -102,6 +111,8 @@ if mfp_close_element:
     mfp_close_element[0].click()
 else:
     pass
+
+toaster = ToastNotifier()
 visa_app = True
 while visa_app:
     date_picker_elements = driver.find_elements(By.CLASS_NAME, "datepicker-days")
@@ -110,10 +121,14 @@ while visa_app:
         date_picker2_available = date_picker_elements[1].find_elements(By.CLASS_NAME, 'regular-day-info')
         if len(date_picker1_available):
             date_picker1_available[0].click()
+            toaster.show_toast(f"{datetime.datetime.now()}:\tAppointment Available!!")
         elif len(date_picker2_available):
             date_picker2_available[0].click()
+            toaster.show_toast(f"{datetime.datetime.now()}:\tAppointment Available!!")
         else:
-            print(f"{datetime.datetime.now()}:\tAppointment Not Available!!")
+            time.sleep(30)
+            print("Not available!!")
+            continue
         time.sleep(30)
     else:
         continue
