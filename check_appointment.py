@@ -94,7 +94,7 @@ while invalid_login:
     # Check login process valid
     invalid_login_element = driver.find_elements(By.LINK_TEXT, "Invalid Captcha.")
     if invalid_login_element:
-        driver.navigate().refresh();
+        captcha_Reload = driver.find_element(By.ID,"LoginCaptcha_ReloadIcon").click()
         continue
     else:
         break
