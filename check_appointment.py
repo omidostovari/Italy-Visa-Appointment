@@ -1,16 +1,20 @@
 # !pip install webdriver-manager
 # ! pip install win10toast
+# !pip install playsound
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from captcha_solver import CaptchaSolver, CaptchaSolverError
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.by import By
 from win10toast import ToastNotifier # For show windows notification
+from playsound import playsound
 from dotenv import load_dotenv
 from selenium import webdriver
 import datetime
 import time
 import os
 
+# Load .env
+load_dotenv('.env')
 
 MONTH = {
     'Jan': '1',
@@ -31,9 +35,17 @@ DAY = (
     11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
     21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
 )
+USER_MONTH_BIRTH = 'Jun'
+USER_YEAR_BIRTH = '1993'
+USER_DAY_BIRTH = "27"
 
-# Load .env
-load_dotenv('.env')
+USER_PRIORITY = {
+    "first":  [13, 14, 15],
+    "second": [18, 19, 20],
+    "third":  [20, 21, 22],
+    "fourth": [11, 12]
+}
+
 
 driver = webdriver.Edge(service=Service(EdgeChromiumDriverManager().install()))
 driver.maximize_window()
@@ -47,87 +59,108 @@ while invalid_login:
     webReference.send_keys(os.getenv("WEB_REFERENCE"))
 
     # Date
-    dateOfBirth_element = driver.find_element(By.NAME, "dateOfBirth")
-    dateOfBirth_element.click()
-
+    try:
+        dateOfBirth_element = driver.find_element(By.NAME, "dateOfBirth")
+        dateOfBirth_element.click()
+    except driver.ElementClickInterceptedException:
+        continue
     ui_datepicker_month_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-month")
     ui_datepicker_month_element.click()
-    month_element = driver.find_element(By.XPATH, f"//*[@id='ui-datepicker-div']/div/div/select[1]/option[{MONTH['Jun']}]")
+    month_element = driver.find_element(By.XPATH, f"//*[@id='ui-datepicker-div']/div/div/select[1]/option[{MONTH[USER_MONTH_BIRTH]}]")
     month_element.click()
 
     ui_datepicker_year_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-year")
     ui_datepicker_year_element.click()
-    year_element = driver.find_element(By.CSS_SELECTOR, "option[value = '1993']")
+    year_element = driver.find_element(By.CSS_SELECTOR, f"option[value = '{USER_YEAR_BIRTH}']")
     year_element.click()
 
-    day_element = driver.find_element(By.LINK_TEXT, f"{27}")
+    day_element = driver.find_element(By.LINK_TEXT, f"{USER_DAY_BIRTH}")
     day_element.click()
     passportNo = driver.find_element(By.NAME, "passportNo")
     passportNo.send_keys(os.getenv("PASSPORT_NO"))
 
     cookieOk = driver.find_elements(By.ID, 'cookieOk')
-    cookieOk[0].click()
-    loading_captcha = driver.find_elements(By.CLASS_NAME)
-    while loading_captcha:
-        if loading_captcha:
-            continue
-        else:
-            break
-    captcha_element = driver.find_element(By.ID, "LoginCaptcha_CaptchaImage")
-    captcha_element.screenshot(f".{os.sep}static{os.sep}img.png")
+    if len(cookieOk):
+        cookieOk[0].click()
+    else:
+        pass
+    captcha_element = driver.find_elements(By.ID, "LoginCaptcha_CaptchaImage")
+    if len(captcha_element):
+        captcha_element[0].screenshot(f".{os.sep}static{os.sep}{driver.session_id}.png")
+        pass
+    else:
+        print("Captcha not loaded !!")
+        while True:
+            loading_captcha = driver.find_elements(By.CLASS_NAME,"BDC-ProgressIndicator")
+            if len(loading_captcha)<1:
+                break
+            else:
+                time.sleep(5)
+                continue
+
     try:
         solver = CaptchaSolver('2captcha', api_key=os.getenv("CAPTCHA_API_KEY"))
-        raw_data = open(f'static{os.sep}img.png', 'rb').read()
+        raw_data = open(f'static{os.sep}{driver.session_id}.png', 'rb').read()
         captcha_text = solver.solve_captcha(raw_data)
         captchaCode = driver.find_element(By.NAME, "captchaCode")
         captchaCode.send_keys(captcha_text)
+
     except CaptchaSolverError:
         print("Balance Too Low!! \nCaptcha does not solved!!")
 
     # Button login
     submitButton = driver.find_elements(By.ID, "SubmitButton")
-    if submitButton:
-        submitButton[0].click()
-    else:
-        pass
+    submitButton[0].click()
 
     # Check login process valid
-    invalid_login_element = driver.find_elements(By.LINK_TEXT, "Invalid Captcha.")
-    if invalid_login_element:
-        captcha_Reload = driver.find_element(By.ID,"LoginCaptcha_ReloadIcon").click()
+    invalid_login_element = driver.find_elements(By.CLASS_NAME, "alignc")
+    if len(invalid_login_element):
+        print("invalid login!!")
+        captcha_Reload = driver.find_element(By.ID,"LoginCaptcha_ReloadIcon")
+        captcha_Reload.click()
         continue
     else:
         break
 
 # Vis Application popup
-confirm_yes_element = driver.find_elements(By.ID, "confirm-yes")
-if confirm_yes_element:
-    confirm_yes_element[0].click()
-else:
+try:
+
+    confirm_yes_element = driver.find_elements(By.ID, "confirm-yes")
+    if len(confirm_yes_element):
+        confirm_yes_element[0].click()
+    else:
+        pass
+except:
     pass
+
 # Cancel Re-schedule Note
 mfp_close_element = driver.find_elements(By.CLASS_NAME, "mfp-close")
-if mfp_close_element:
+if len(mfp_close_element):
     mfp_close_element[0].click()
 else:
     pass
 
-toaster = ToastNotifier()
+
+
+notifier = ToastNotifier()
 visa_app = True
 while visa_app:
     date_picker_elements = driver.find_elements(By.CLASS_NAME, "datepicker-days")
     if date_picker_elements:
-        date_picker1_available = date_picker_elements[0].find_elements(By.CLASS_NAME, 'regular-day-info')
-        date_picker2_available = date_picker_elements[1].find_elements(By.CLASS_NAME, 'regular-day-info')
+        date_picker1_available = date_picker_elements[0].find_elements(By.CLASS_NAME, 'regular')
+        date_picker2_available = date_picker_elements[1].find_elements(By.CLASS_NAME, 'regular')
         if len(date_picker1_available):
             date_picker1_available[0].click()
-            toaster.show_toast(f"{datetime.datetime.now()}:\tAppointment Available!!")
+            playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
+            notifier.show_toast(f"Available!!")
         elif len(date_picker2_available):
             date_picker2_available[0].click()
-            toaster.show_toast(f"{datetime.datetime.now()}:\tAppointment Available!!")
+            playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
+            notifier.show_toast(f"Available!!")
         else:
-            time.sleep(30)
+            notifier.show_toast(f"Not Available!!")
             print("Not available!!")
+            time.sleep(30)
             continue
         time.sleep(30)
     else:
