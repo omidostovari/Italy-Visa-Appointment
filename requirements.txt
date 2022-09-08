@@ -1,0 +1,6 @@
+webdriver-manager
+win10toast
+playsound
+captcha_solver
+selenium
+python-dotenv

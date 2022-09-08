@@ -1,6 +1,8 @@
 # !pip install webdriver-manager
-# ! pip install win10toast
+# !pip install win10toast
 # !pip install playsound
+# !pip install captcha_solver
+# !pip install selenium
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from captcha_solver import CaptchaSolver, CaptchaSolverError
 from selenium.webdriver.edge.service import Service
@@ -46,6 +48,13 @@ USER_PRIORITY = {
     "fourth": [11, 12]
 }
 
+# Cancel Re-schedule Note
+def mfp_close(driver):
+    mfp_close_element = driver.find_elements(By.CLASS_NAME, "mfp-close")
+    if len(mfp_close_element):
+        mfp_close_element[0].click()
+    else:
+        pass
 
 driver = webdriver.Edge(service=Service(EdgeChromiumDriverManager().install()))
 driver.maximize_window()
@@ -122,6 +131,7 @@ while invalid_login:
     else:
         break
 
+driver.get('https://www.ckgsir.com/book-appointment')
 # Vis Application popup
 try:
 
@@ -134,13 +144,7 @@ except:
     pass
 
 # Cancel Re-schedule Note
-mfp_close_element = driver.find_elements(By.CLASS_NAME, "mfp-close")
-if len(mfp_close_element):
-    mfp_close_element[0].click()
-else:
-    pass
-
-
+mfp_close(driver)
 
 notifier = ToastNotifier()
 visa_app = True
@@ -152,17 +156,22 @@ while visa_app:
         if len(date_picker1_available):
             date_picker1_available[0].click()
             playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
-            notifier.show_toast(f"Available!!")
+            notifier.show_toast(f"-_-_-_-_-_-_-_-\nAvailable!!-_\n-_-_-_-_-_-_-_")
         elif len(date_picker2_available):
             date_picker2_available[0].click()
             playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
-            notifier.show_toast(f"Available!!")
+            notifier.show_toast(f"-_-_-_-_-_-_-_-\nAvailable!!-_\n-_-_-_-_-_-_-_")
         else:
-            notifier.show_toast(f"Not Available!!")
             print("Not available!!")
             time.sleep(30)
+            driver.refresh()
+            mfp_close(driver)
             continue
         time.sleep(30)
+        driver.refresh()
     else:
+        time.sleep(30)
+        driver.refresh()
+        mfp_close(driver)
         continue
 driver.close()
