@@ -5,6 +5,7 @@
 # !pip install selenium
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from captcha_solver import CaptchaSolver, CaptchaSolverError
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.by import By
 from win10toast import ToastNotifier # For show windows notification
@@ -55,23 +56,31 @@ def mfp_close(driver):
         mfp_close_element[0].click()
     else:
         pass
-
+time_out = True
 driver = webdriver.Edge(service=Service(EdgeChromiumDriverManager().install()))
 driver.maximize_window()
-driver.get('https://www.ckgsir.com/my-account')
+while time_out:
+    try:
+        driver.get('https://www.ckgsir.com/my-account')
+    except:
+        time.sleep(13)
+        # driver.refresh()
+        continue
+    break
+
+
 invalid_login = True
-
 while invalid_login:
-
+    driver.implicitly_wait(5)
     # Fill My Account form
-    webReference = driver.find_element(By.NAME, 'webReference')
+    webReference = driver.find_element(By.NAME, 'webReference')  # TODO NoSuchElementException  Error
     webReference.send_keys(os.getenv("WEB_REFERENCE"))
 
     # Date
     try:
         dateOfBirth_element = driver.find_element(By.NAME, "dateOfBirth")
         dateOfBirth_element.click()
-    except driver.ElementClickInterceptedException:
+    except:
         continue
     ui_datepicker_month_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-month")
     ui_datepicker_month_element.click()
