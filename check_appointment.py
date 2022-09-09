@@ -8,7 +8,7 @@ from captcha_solver import CaptchaSolver, CaptchaSolverError
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.by import By
-from win10toast import ToastNotifier # For show windows notification
+from win10toast import ToastNotifier  # For show windows notification
 from playsound import playsound
 from dotenv import load_dotenv
 from selenium import webdriver
@@ -43,11 +43,12 @@ USER_YEAR_BIRTH = '1993'
 USER_DAY_BIRTH = "27"
 
 USER_PRIORITY = {
-    "first":  [13, 14, 15],
+    "first": [13, 14, 15],
     "second": [18, 19, 20],
-    "third":  [20, 21, 22],
+    "third": [20, 21, 22],
     "fourth": [11, 12]
 }
+
 
 # Cancel Re-schedule Note
 def mfp_close(driver):
@@ -56,6 +57,8 @@ def mfp_close(driver):
         mfp_close_element[0].click()
     else:
         pass
+
+
 time_out = True
 driver = webdriver.Edge(service=Service(EdgeChromiumDriverManager().install()))
 driver.maximize_window()
@@ -66,8 +69,8 @@ while time_out:
         time.sleep(13)
         # driver.refresh()
         continue
+    playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
     break
-
 
 invalid_login = True
 while invalid_login:
@@ -84,7 +87,8 @@ while invalid_login:
         continue
     ui_datepicker_month_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-month")
     ui_datepicker_month_element.click()
-    month_element = driver.find_element(By.XPATH, f"//*[@id='ui-datepicker-div']/div/div/select[1]/option[{MONTH[USER_MONTH_BIRTH]}]")
+    month_element = driver.find_element(By.XPATH,
+                                        f"//*[@id='ui-datepicker-div']/div/div/select[1]/option[{MONTH[USER_MONTH_BIRTH]}]")
     month_element.click()
 
     ui_datepicker_year_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-year")
@@ -109,8 +113,8 @@ while invalid_login:
     else:
         print("Captcha not loaded !!")
         while True:
-            loading_captcha = driver.find_elements(By.CLASS_NAME,"BDC-ProgressIndicator")
-            if len(loading_captcha)<1:
+            loading_captcha = driver.find_elements(By.CLASS_NAME, "BDC-ProgressIndicator")
+            if len(loading_captcha) < 1:
                 break
             else:
                 time.sleep(5)
@@ -134,7 +138,7 @@ while invalid_login:
     invalid_login_element = driver.find_elements(By.CLASS_NAME, "alignc")
     if len(invalid_login_element):
         print("invalid login!!")
-        captcha_Reload = driver.find_element(By.ID,"LoginCaptcha_ReloadIcon")
+        captcha_Reload = driver.find_element(By.ID, "LoginCaptcha_ReloadIcon")
         captcha_Reload.click()
         continue
     else:

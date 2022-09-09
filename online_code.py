@@ -184,4 +184,3 @@ while visa_app:
         mfp_close(driver)
         continue
 driver.close()
-#%%
