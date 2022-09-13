@@ -5,9 +5,10 @@
 # !pip install selenium
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from captcha_solver import CaptchaSolver, CaptchaSolverError
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
 from win10toast import ToastNotifier  # For show windows notification
 from playsound import playsound
 from dotenv import load_dotenv
@@ -52,112 +53,136 @@ USER_PRIORITY = {
 
 # Cancel Re-schedule Note
 def mfp_close(driver):
-    mfp_close_element = driver.find_elements(By.CLASS_NAME, "mfp-close")
-    if len(mfp_close_element):
-        mfp_close_element[0].click()
-    else:
-        pass
+    mfp_close_element = driver.find_element(By.CLASS_NAME, "mfp-close")
+    driver.implicitly_wait(5)
+    mfp_close_element.click()
 
 
-time_out = True
+
 driver = webdriver.Edge(service=Service(EdgeChromiumDriverManager().install()))
 driver.maximize_window()
-while time_out:
+while True:
     try:
         driver.get('https://www.ckgsir.com/my-account')
-    except:
-        time.sleep(13)
-        # driver.refresh()
+    except :
+        driver.refresh()
         continue
-    playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
-    break
+    else:
+        playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
+        break
 
 invalid_login = True
 while invalid_login:
-    driver.implicitly_wait(5)
-    # Fill My Account form
-    webReference = driver.find_element(By.NAME, 'webReference')  # TODO NoSuchElementException  Error
-    webReference.send_keys(os.getenv("WEB_REFERENCE"))
-
-    # Date
     try:
+        """ Try to fill My Account form !"""
+
+        # Fill webReference
+        webReference = driver.find_element(By.NAME, 'webReference')
+        driver.implicitly_wait(5)
+        webReference.send_keys(os.getenv("WEB_REFERENCE"))
+
+        # Fill date if birthday
+        # Click on date of birth element
         dateOfBirth_element = driver.find_element(By.NAME, "dateOfBirth")
+        driver.implicitly_wait(5)
         dateOfBirth_element.click()
-    except:
-        continue
-    ui_datepicker_month_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-month")
-    ui_datepicker_month_element.click()
-    month_element = driver.find_element(By.XPATH,
-                                        f"//*[@id='ui-datepicker-div']/div/div/select[1]/option[{MONTH[USER_MONTH_BIRTH]}]")
-    month_element.click()
 
-    ui_datepicker_year_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-year")
-    ui_datepicker_year_element.click()
-    year_element = driver.find_element(By.CSS_SELECTOR, f"option[value = '{USER_YEAR_BIRTH}']")
-    year_element.click()
+        # Fill month user birthday
+        month_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-month") # TODO WebDriverException
+        driver.implicitly_wait(5)
+        month_element.click()
+        month_element_input = driver.find_element(
+            By.XPATH,
+            f"//*[@id='ui-datepicker-div']/div/div/select[1]/option[{MONTH[USER_MONTH_BIRTH]}]"
+        )
+        driver.implicitly_wait()
+        month_element_input.click()
 
-    day_element = driver.find_element(By.LINK_TEXT, f"{USER_DAY_BIRTH}")
-    day_element.click()
-    passportNo = driver.find_element(By.NAME, "passportNo")
-    passportNo.send_keys(os.getenv("PASSPORT_NO"))
+        # Fill year user birthday
+        year_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-year")
+        driver.implicitly_wait(5)
+        year_element.click()
+        year_element_input = driver.find_element(By.CSS_SELECTOR, f"option[value = '{USER_YEAR_BIRTH}']")
+        driver.implicitly_wait(5)
+        year_element_input.click()
 
-    cookieOk = driver.find_elements(By.ID, 'cookieOk')
-    if len(cookieOk):
-        cookieOk[0].click()
-    else:
-        pass
-    captcha_element = driver.find_elements(By.ID, "LoginCaptcha_CaptchaImage")
-    if len(captcha_element):
-        captcha_element[0].screenshot(f".{os.sep}static{os.sep}{driver.session_id}.png")
-        pass
-    else:
-        print("Captcha not loaded !!")
-        while True:
-            loading_captcha = driver.find_elements(By.CLASS_NAME, "BDC-ProgressIndicator")
-            if len(loading_captcha) < 1:
-                break
-            else:
-                time.sleep(5)
-                continue
+        # Fill day user birthday
+        day_element_input = driver.find_element(By.LINK_TEXT, f"{USER_DAY_BIRTH}")
+        driver.implicitly_wait(5)
+        day_element_input.click()
 
-    try:
+        # Fill passportNo user birthday
+        passportNo = driver.find_element(By.NAME, "passportNo")
+        driver.implicitly_wait(5)
+        passportNo.send_keys(os.getenv("PASSPORT_NO"))
+
+        # Close cookie for screenshot as captcha code
+        cookieOk = driver.find_element(By.ID, 'cookieOk')
+        driver.implicitly_wait(5)
+        cookieOk.click()
+        captcha_element = driver.find_element(By.ID, "LoginCaptcha_CaptchaImage")
+        driver.implicitly_wait(5)
+        captcha_element.screenshot(f".{os.sep}static{os.sep}{driver.session_id}.png")
+
+        # Captcha solver
         solver = CaptchaSolver('2captcha', api_key=os.getenv("CAPTCHA_API_KEY"))
         raw_data = open(f'static{os.sep}{driver.session_id}.png', 'rb').read()
         captcha_text = solver.solve_captcha(raw_data)
         captchaCode = driver.find_element(By.NAME, "captchaCode")
+        driver.implicitly_wait(5)
         captchaCode.send_keys(captcha_text)
 
-    except CaptchaSolverError:
-        print("Balance Too Low!! \nCaptcha does not solved!!")
+        # Button login
+        submitButton = driver.find_element(By.ID, "SubmitButton")
+        driver.implicitly_wait(5)
+        submitButton.click()
 
-    # Button login
-    submitButton = driver.find_elements(By.ID, "SubmitButton")
-    submitButton[0].click()
-
-    # Check login process valid
-    invalid_login_element = driver.find_elements(By.CLASS_NAME, "alignc")
-    if len(invalid_login_element):
-        print("invalid login!!")
-        captcha_Reload = driver.find_element(By.ID, "LoginCaptcha_ReloadIcon")
-        captcha_Reload.click()
+        # Check login process valid
+        invalid_login_element = driver.find_elements(By.CLASS_NAME, "alignc")
+        if len(invalid_login_element):
+            print("invalid login!!")
+            driver.refresh()
+            continue
+    except CaptchaSolverError as cs:
+        print(f"CaptchaSolverError!! \n{cs}")
+        driver.refresh()
         continue
+    except WebDriverException as driver_exception:
+        print(f"Web Driver Exception \n{driver_exception}")
+        driver.refresh()
+
+    except NoSuchElementException as not_exist:
+        print(f"Element not loaded \n{not_exist}")
+        driver.refresh()
+
+    # If not returned except
     else:
-        break
+        try:
+            # Redirect to book-appointment
+            driver.get('https://www.ckgsir.com/book-appointment')
 
-driver.get('https://www.ckgsir.com/book-appointment')
-# Vis Application popup
-try:
+            # Vis Application confirm yes popup
+            confirm_yes_element = driver.find_element(By.ID, "confirm-yes")
+            driver.implicitly_wait(10)
+            confirm_yes_element.click()
 
-    confirm_yes_element = driver.find_elements(By.ID, "confirm-yes")
-    if len(confirm_yes_element):
-        confirm_yes_element[0].click()
-    else:
-        pass
-except:
-    pass
+            # Cancel Re-schedule Note
+            mfp_close(driver)
 
-# Cancel Re-schedule Note
-mfp_close(driver)
+        except NoSuchElementException as not_exist:
+            print(f"Element not loaded \n{not_exist}")
+            driver.close()
+            continue
+        except TimeoutException as te:
+            print(f"TimeoutException \n{te}!!")
+            driver.close()
+            continue
+
+
+
+
+
+
 
 notifier = ToastNotifier()
 visa_app = True
