@@ -129,3 +129,10 @@ dmypy.json
 .pyre/
 # Add Idea to ignore
 .idea
+
+# Add static dir for ignoring captcha image
+static/
+# Add ipynb
+*.ipynb
+
+edgedriver_win64/
