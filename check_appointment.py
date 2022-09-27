@@ -90,7 +90,7 @@ while invalid_login:
         dateOfBirth_element.click()
 
         # Fill month user birthday
-        month_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-month") # TODO WebDriverException
+        month_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-month") 
         driver.implicitly_wait(5)
         month_element.click()
         month_element_input = driver.find_element(
@@ -192,27 +192,30 @@ while invalid_login:
             continue
 
 
-
-
-
-
-
-notifier = ToastNotifier()
 visa_app = True
 while visa_app:
     print("Check calender !!")
     date_picker_elements = driver.find_elements(By.CLASS_NAME, "datepicker-days")
     if date_picker_elements:
         date_picker1_available = date_picker_elements[0].find_elements(By.CLASS_NAME, 'regular')
+        driver.implicitly_wait(3)
         date_picker2_available = date_picker_elements[1].find_elements(By.CLASS_NAME, 'regular')
+        driver.implicitly_wait(3)
         if len(date_picker1_available):
             date_picker1_available[0].click()
-            playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
-            notifier.show_toast(f"-_-_-_-_-_-_-_-\nAvailable!!-_\n-_-_-_-_-_-_-_")
+            radio_button = driver.find_element(By.CLASS_NAME, "styled-radio")
+            driver.implicitly_wait(3)
+            radio_button.click()
+            for i in range(3):
+                playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
         elif len(date_picker2_available):
             date_picker2_available[0].click()
-            playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
-            notifier.show_toast(f"-_-_-_-_-_-_-_-\nAvailable!!-_\n-_-_-_-_-_-_-_")
+            radio_button = driver.find_element(By.CLASS_NAME, "styled-radio")
+            driver.implicitly_wait(3)
+            radio_button.click()
+            for i in range(3):
+                playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
+
         else:
             print("Not available!!")
             time.sleep(30)
