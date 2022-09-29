@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from selenium import webdriver
 import datetime
 import time
+import random
 import os
 
 # Load .env
@@ -53,28 +54,84 @@ USER_PRIORITY = {
     "fourth": [11, 12]
 }
 
-
 # Cancel Re-schedule Note
 def mfp_close(driver):
     mfp_close_element = driver.find_element(By.CLASS_NAME, "mfp-close")
     driver.implicitly_wait(5)
     mfp_close_element.click()
+
+
+def type_of_appointment(driver):
+    radio_button = driver.find_element(By.CLASS_NAME, "styled-radio")
+    driver.implicitly_wait(5)
+    radio_button.click()
+
+
+def book_appointment(driver):
+    date_picker1_available = date_picker_elements[0].find_elements(By.CLASS_NAME, 'regular')
+    driver.implicitly_wait(3)
+    date_picker2_available = date_picker_elements[1].find_elements(By.CLASS_NAME, 'regular')
+    driver.implicitly_wait(3)
+    if len(date_picker1_available):
+        date_picker1_available[0].click()
+        type_of_appointment(driver)
+        return True
+    elif len(date_picker2_available):
+        date_picker2_available[0].click()
+        type_of_appointment(driver)
+        return True
+    else:
+        return False
+
+
+
+def search_in_morning(driver):
+    afternoon_part = driver.find_element(By.ID, "Morning")
+    driver.implicitly_wait(5)
+    afternoon_part.click()
+    morning_times = driver.find_element(By.ID, "radio_Morning_185")
+    enable_times = morning_times.find_elements(By.CSS_SELECTOR, "input[displaystatus = 'enabled']")
+    if len(enable_times):
+        enable_times[-1].click()
+        return True
+    else:
+        return False
+
+
+def search_in_afternoon(driver):
+    parts_day_element = driver.find_element(By.ID, "Afternoon")
+    driver.implicitly_wait(5)
+    parts_day_element.click()
+    afternoon_times = driver.find_element(By.ID, "radio_Afternoon_185")
+    enable_times = afternoon_times.find_elements(By.CSS_SELECTOR, 'input[displaystatus = "enabled"]')
+    if len(enable_times):
+        enable_times[-1].click()
+        return True
+    else:
+        return False
+
+
+def check_again(driver):
+    print("Not available!!")
+    time.sleep(random.randint(40, 60))
+    driver.refresh()
+    mfp_close(driver)
+
+
 driver = uc.Chrome(use_subprocess=True)
 # driver = webdriver.Edge(service=Service(EdgeChromiumDriverManager().install()))
 driver.maximize_window()
-while True:
-    try:
-        driver.get('https://www.ckgsir.com/my-account')
-        driver.implicitly_wait(60)
-    except:
-        driver.refresh()
-        continue
-    else:
-        break
-playsound(f"static{os.sep}Successfull-sound.mp3")
 invalid_login = True
 while invalid_login:
-
+    while True:
+        try:
+            driver.get('https://www.ckgsir.com/my-account')
+            driver.implicitly_wait(60)
+        except:
+            driver.refresh()
+            continue
+        else:
+            break
     try:
         """ Try to fill My Account form !"""
 
@@ -90,7 +147,7 @@ while invalid_login:
         dateOfBirth_element.click()
 
         # Fill month user birthday
-        month_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-month") 
+        month_element = driver.find_element(By.CLASS_NAME, "ui-datepicker-month")
         driver.implicitly_wait(5)
         month_element.click()
         month_element_input = driver.find_element(
@@ -118,13 +175,14 @@ while invalid_login:
         driver.implicitly_wait(5)
         passportNo.send_keys(PASSPORT_NO)
 
-        # Close cookie for screenshot as captcha code
-        cookieOk = driver.find_element(By.ID, 'cookieOk')
-        driver.implicitly_wait(10)
-        cookieOk.click()
-
         captcha_element = driver.find_element(By.ID, "LoginCaptcha_CaptchaImage")
         driver.implicitly_wait(5)
+
+        # Close cookie for screenshot as captcha code
+        cookieOk = driver.find_elements(By.ID, 'cookieOk')
+        driver.implicitly_wait(10)
+        if len(cookieOk):
+            cookieOk[0].click()
         captcha_element.screenshot(f".{os.sep}static{os.sep}{driver.session_id}.png")
 
         # Captcha solver
@@ -150,15 +208,20 @@ while invalid_login:
         # Check login process valid
     except CaptchaSolverError as cs:
         print(f"CaptchaSolverError!! \n{cs}")
-        # driver.refresh()
+        driver.refresh()
+        driver.implicitly_wait(10)
         continue
     except WebDriverException as driver_exception:
         print(f"Web Driver Exception \n{driver_exception}")
-        # driver.refresh()
+        driver.close()
+        continue
+
 
     except NoSuchElementException as not_exist:
         print(f"Element not loaded \n{not_exist}")
-        # driver.refresh()
+        driver.refresh()
+        driver.implicitly_wait(10)
+        continue
 
     # If not returned except
     else:
@@ -191,42 +254,29 @@ while invalid_login:
             driver.close()
             continue
 
-
 visa_app = True
 while visa_app:
     print("Check calender !!")
     date_picker_elements = driver.find_elements(By.CLASS_NAME, "datepicker-days")
     if date_picker_elements:
-        date_picker1_available = date_picker_elements[0].find_elements(By.CLASS_NAME, 'regular')
-        driver.implicitly_wait(3)
-        date_picker2_available = date_picker_elements[1].find_elements(By.CLASS_NAME, 'regular')
-        driver.implicitly_wait(3)
-        if len(date_picker1_available):
-            date_picker1_available[0].click()
-            radio_button = driver.find_element(By.CLASS_NAME, "styled-radio")
-            driver.implicitly_wait(3)
-            radio_button.click()
-            for i in range(3):
+        # If available day is exist, select available day and return True if not exist return False
+        available_day = book_appointment(driver)
+        if available_day:
+            for i in range(4):  # TODO: should replace this loop to send email and send to telegram channel
                 playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
-        elif len(date_picker2_available):
-            date_picker2_available[0].click()
-            radio_button = driver.find_element(By.CLASS_NAME, "styled-radio")
-            driver.implicitly_wait(3)
-            radio_button.click()
-            for i in range(3):
-                playsound(f".{os.sep}static{os.sep}Successfull-sound.mp3")
+            available_morning = search_in_morning(driver)
+            available_afternoon = search_in_afternoon(driver)
+
+            if available_morning or available_afternoon:
+                pass  # TODO: solve captcha and submit book appointment
+            else:
+                check_again(driver)
+                continue
 
         else:
-            print("Not available!!")
-            time.sleep(30)
-            driver.refresh()
-            mfp_close(driver)
+            check_again(driver)
             continue
-        time.sleep(30)
-        driver.refresh()
     else:
-        time.sleep(30)
-        driver.refresh()
-        mfp_close(driver)
+        check_again(driver)
         continue
 driver.close()
